@@ -447,7 +447,7 @@ const PackageSpec = API.Package
     )
 
 Set the protocol used to access hosted packages when `add`ing a url or `develop`ing a package.
-Defaults to delegating the choice to the package developer (`protocol == nothing`).
+Defaults to delegating the choice to the package developer (`protocol === nothing`).
 Other choices for `protocol` are `"https"` or `"git"`.
 
 # Examples
@@ -514,7 +514,6 @@ function __init__()
             end
         end
     end
-    API.add_snapshot_to_undo()
 end
 
 ##################

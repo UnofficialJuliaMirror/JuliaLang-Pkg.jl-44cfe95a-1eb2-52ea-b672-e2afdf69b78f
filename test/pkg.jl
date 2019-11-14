@@ -625,7 +625,7 @@ end
         # Example
         Pkg.add(TEST_PKG.name)
         @test haskey(Pkg.dependencies(), TEST_PKG.uuid)
-        # 
+        #
         Pkg.undo()
         @test !haskey(Pkg.dependencies(), TEST_PKG.uuid)
         # Example
@@ -653,7 +653,7 @@ end
         # Example, Unicode
         Pkg.redo()
         @test haskey(Pkg.dependencies(), unicode_uuid)
-        
+
         # Example
         Pkg.undo()
 

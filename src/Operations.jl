@@ -363,7 +363,7 @@ function deps_graph(ctx::Context, uuid_to_name::Dict{UUID,String}, reqs::Resolve
             if uuid in keys(ctx.stdlibs)
                 path = Types.stdlib_path(ctx.stdlibs[uuid])
                 proj_file = projectfile_path(path; strict=true)
-                @assert proj_file != nothing
+                @assert proj_file !== nothing
                 proj = Types.read_package(proj_file)
 
                 v = something(proj.version, VERSION)
@@ -446,7 +446,7 @@ end
 ########################
 
 function get_archive_url_for_version(url::String, ref)
-    if (m = match(r"https://github.com/(.*?)/(.*?).git", url)) != nothing
+    if (m = match(r"https://github.com/(.*?)/(.*?).git", url)) !== nothing
         return "https://api.github.com/repos/$(m.captures[1])/$(m.captures[2])/tarball/$(ref)"
     end
     return nothing
@@ -560,7 +560,7 @@ end
 function download_artifacts(pkgs::Vector{PackageSpec}; platform::Platform=platform_key_abi(),
                             verbose::Bool=false)
     # Filter out packages that have no source_path()
-    pkg_roots = String[p for p in source_path.(pkgs) if p != nothing]
+    pkg_roots = String[p for p in source_path.(pkgs) if p !== nothing]
     return download_artifacts(pkg_roots; platform=platform, verbose=verbose)
 end
 
@@ -666,7 +666,7 @@ function download_source(ctx::Context, pkgs::Vector{PackageSpec},
                                                  sprint(Base.showerror, exc_or_success, bt_or_path))
         success, path = exc_or_success, bt_or_path
         if success
-            vstr = pkg.version != nothing ? "v$(pkg.version)" : "[$h]"
+            vstr = pkg.version !== nothing ? "v$(pkg.version)" : "[$h]"
             printpkgstyle(ctx, :Installed, string(rpad(pkg.name * " ", max_name + 2, "─"), " ", vstr))
         else
             push!(missed_packages, (pkg, path))
@@ -680,7 +680,7 @@ function download_source(ctx::Context, pkgs::Vector{PackageSpec},
         uuid = pkg.uuid
         install_git(ctx, pkg.uuid, pkg.name, pkg.tree_hash, urls[uuid], pkg.version::VersionNumber, path)
         readonly && set_readonly(path)
-        vstr = pkg.version != nothing ? "v$(pkg.version)" : "[$h]"
+        vstr = pkg.version !== nothing ? "v$(pkg.version)" : "[$h]"
         printpkgstyle(ctx, :Installed, string(rpad(pkg.name * " ", max_name + 2, "─"), " ", vstr))
     end
 
@@ -839,6 +839,7 @@ function build_versions(ctx::Context, uuids::Vector{UUID}; might_need_to_resolve
                       rpad(name * " ", max_name + 1, "─") * "→ " * Types.pathrepr(log_file))
 
         sandbox(ctx, pkg, source_path, builddir(source_path)) do
+            flush(stdout)
             ok = open(log_file, "w") do log
                 std = verbose ? ctx.io : log
                 success(pipeline(gen_build_code(buildfile(source_path)),
@@ -1375,6 +1376,7 @@ function test(ctx::Context, pkgs::Vector{PackageSpec};
             println(ctx.io, "Running sandbox")
             test_fn !== nothing && test_fn()
             Display.status(Context(), mode=PKGMODE_PROJECT)
+            flush(stdout)
             try
                 run(gen_test_code(testfile(source_path); coverage=coverage, julia_args=julia_args, test_args=test_args))
                 printpkgstyle(ctx, :Testing, pkg.name * " tests passed ")

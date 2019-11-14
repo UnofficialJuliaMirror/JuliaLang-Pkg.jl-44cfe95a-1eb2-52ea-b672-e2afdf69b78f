@@ -182,7 +182,7 @@ function find_project_file(env::Union{Nothing,String}=nothing)
     project_file = nothing
     if env isa Nothing
         project_file = Base.active_project()
-        project_file == nothing && pkgerror("no active project")
+        project_file === nothing && pkgerror("no active project")
     elseif startswith(env, '@')
         project_file = Base.load_path_expand(env)
         project_file === nothing && pkgerror("package environment does not exist: $env")
@@ -281,8 +281,10 @@ function EnvCache(env::Union{Nothing,String}=nothing)
     git = ispath(joinpath(project_dir, ".git")) ? project_dir : nothing
     # read project file
     project = read_project(project_file)
-    # initiaze project package
+    # initialize project package
     if any(x -> x !== nothing, [project.name, project.uuid, project.version])
+        project.name === nothing && pkgerror("project appears to be a package but has no name")
+        project.uuid === nothing && pkgerror("project appears to be a package but has no uuid")
         project_package = PackageSpec(
             name = project.name,
             uuid = project.uuid,
@@ -301,7 +303,8 @@ function EnvCache(env::Union{Nothing,String}=nothing)
     uuids = Dict{String,Vector{UUID}}()
     paths = Dict{UUID,Vector{String}}()
     names = Dict{UUID,Vector{String}}()
-    return EnvCache(env,
+
+    env′ = EnvCache(env,
         git,
         project_file,
         manifest_file,
@@ -313,6 +316,14 @@ function EnvCache(env::Union{Nothing,String}=nothing)
         uuids,
         paths,
         names,)
+
+    # Save initial environment for undo/redo functionality
+    if !Pkg.API.saved_initial_snapshot[]
+        Pkg.API.add_snapshot_to_undo(env′)
+        Pkg.API.saved_initial_snapshot[] = true
+    end
+
+    return env′
 end
 
 include("project.jl")
@@ -491,12 +502,12 @@ function handle_repo_develop!(ctx::Context, pkg::PackageSpec, shared::Bool)
         uuid = get(ctx.env.project.deps, pkg.name, nothing)
         if uuid !== nothing
             entry = manifest_info(ctx, uuid)
-            if entry !== nothing 
+            if entry !== nothing
                 pkg.repo.source = entry.repo.source
             end
         end
     end
-    
+
     # Still haven't found the source, try get it from the registry
     if pkg.repo.source === nothing
         set_repo_source_from_registry!(ctx, pkg)
@@ -589,7 +600,7 @@ function handle_repo_add!(ctx::Context, pkg::PackageSpec)
 
     LibGit2.with(GitTools.ensure_clone(ctx, add_repo_cache_path(repo_source), repo_source; isbare=true)) do repo
         # If the user didn't specify rev, assume they want the default (master) branch if on a branch, otherwise the current commit
-        if pkg.repo.rev == nothing
+        if pkg.repo.rev === nothing
             pkg.repo.rev = LibGit2.isattached(repo) ? LibGit2.branch(repo) : string(LibGit2.GitHash(LibGit2.head(repo)))
         end
 
@@ -631,7 +642,7 @@ function handle_repo_add!(ctx::Context, pkg::PackageSpec)
         # check to see if the package exists at its canonical path.
         version_path = Pkg.Operations.source_path(pkg)
         isdir(version_path) && return false
-        
+
         # Otherwise, move the temporary path into its correct place and set read only
         mkpath(version_path)
         mv(temp_path, version_path; force=true)
@@ -1255,7 +1266,7 @@ function registered_name(ctx::Context, uuid::UUID)::Union{Nothing,String}
     values = registered_info(ctx, uuid, "name")
     name = nothing
     for value in values
-        name  == nothing && (name = value[2])
+        name  === nothing && (name = value[2])
         name != value[2] && pkgerror("package `$uuid` has multiple registered name values: $name, $(value[2])")
     end
     return name

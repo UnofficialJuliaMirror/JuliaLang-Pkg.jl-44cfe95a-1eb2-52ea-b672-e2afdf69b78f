@@ -29,7 +29,7 @@ The union of multiple version specifiers can be formed by comma separating indiv
 [compat]
 Example = "1.2, 2"
 ```
-will result in `[1.2.0, 3.0.0)`.
+will result in `[1.2.0, 3.0.0)`.  Note leading zeros are treated differently, e.g. `Example = "0.2, 1"` would only result in `[0.2.0-0.3.0, 1.0.0-2.0.0]`. See the next section for more information on versions with leading zeros.
 
 ### Behavior of versions with leading zeros (0.0.x and 0.x.y)
 
@@ -46,7 +46,7 @@ minor versions are not considered compatible, so the version 0.3.0 might have br
 Example = "0.0.1"
 ```
 
-results in a versionbound on `Example` as `[0.0.1, 0.02)` (which is equivalent to only the version 0.0.1), while the
+results in a versionbound on `Example` as `[0.0.1, 0.0.2)` (which is equivalent to only the version 0.0.1), while the
 `[compat]` entry:
 
 ```julia
